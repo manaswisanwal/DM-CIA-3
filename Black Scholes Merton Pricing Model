@@ -1,49 +1,32 @@
 import math
+from scipy.stats import norm  
 
-def binomial_tree(S0, E, u, d, T, option_type):
-    # Initialize stock price tree
-    stock_tree = [[0 for _ in range(T + 1)] for _ in range(T + 1)]
+# input data
+S = float(input("Enter Spot Price: "))  
+E = float(input("Enter Strike Price: "))  
+x = int(input("Enter Days till Expiry: "))  
+vol = float(input("Enter the Annualized Volatility of Stock: "))  
+w = float(input("Enter Risk Free Rate (Percentage):"))
 
-    # Populate stock price tree
-    for j in range(T + 1):
-        for i in range(j + 1):
-            stock_tree[i][j] = round(S0 * (u ** (j - i)) * (d ** i), 2)
+# Convert days to years and Risk Free Rate to decimal
+T = x / 365  
+r = w / 100
 
-    # Initialize option price tree
-    option_tree = [[0 for _ in range(T + 1)] for _ in range(T + 1)]
+# Check for valid input values
+if S <= 0 or E <= 0 or x <= 0 or vol <= 0:
+    print("Error: Spot price, Strike price, Expiry days, and Volatility must be greater than zero.")
+else:
+    # d1 and d2 calculation
+    d1 = (math.log(S / E) + (r + 0.5 * vol ** 2) * T) / (vol * math.sqrt(T))
+    d2 = d1 - (vol * math.sqrt(T))
 
-    # Compute terminal option values at expiry
-    for i in range(T + 1):
-        if option_type == "call":
-            option_tree[i][T] = max(0, stock_tree[i][T] - E)
-        else:
-            option_tree[i][T] = max(0, E - stock_tree[i][T])
+    # Call and Put Option Prices
+    C = S * norm.cdf(d1) - E * math.exp(-r * T) * norm.cdf(d2)
+    P = E * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
 
-    # Backward induction to compute option price
-    for j in range(T - 1, -1, -1):
-        for i in range(j + 1):
-            option_tree[i][j] = round((option_tree[i][j + 1] + option_tree[i + 1][j + 1]) / 2, 2)
-
-    return stock_tree, option_tree, option_tree[0][0]
-
-# User input
-option_type = input("Enter option type ('call' or 'put'): ").strip().lower()
-S0 = float(input("Enter Spot Price (S0): "))
-E = float(input("Enter Strike Price (E): "))
-u = float(input("Enter Upward Price Movement Factor (u): "))
-d = float(input("Enter Downward Price Movement Factor (d): "))
-T = int(input("Enter Time to Expiry in months (T): "))  # Steps = Months
-
-# Compute binomial tree
-stock_tree, option_tree, option_price = binomial_tree(S0, E, u, d, T, option_type)
-
-# Display results
-print("\n--- Stock Price Tree ---")
-for row in stock_tree:
-    print([f"{x:.2f}" for x in row if x > 0])
-
-print("\n--- Option Price Tree ---")
-for row in option_tree:
-    print([f"{x:.2f}" for x in row if x > 0])
-
-print(f"\n{option_type.capitalize()} Option Price: Rs {round(option_price, 6)}")
+    # Results
+    print("\n--- Black-Scholes Option Pricing Results ---")
+    print(f"Call Option Price: Rs {round(C, 6)}")
+    print(f"Put Option Price: Rs {round(P, 6)}")
+    print(f"Value of d1: {round(d1, 6)}")
+    print(f"Value of d2: {round(d2, 6)}")
