@@ -1,63 +1,51 @@
 import math
-from scipy.stats import norm
 
-# Asking user for the type of option
-option_type = input("Do you want to price a 'Call' or 'Put' option? (Type 'Call' or 'Put'): ").strip().lower()
+def binomial_tree(S0, E, u, d, T, option_type):
+    # Initialize stock price tree
+    stock_tree = [[0 for _ in range(T + 1)] for _ in range(T + 1)]
 
-# Required Values
-S0 = float(input("Enter the Spot Price (S0): "))
-E = float(input("Enter the Exercise Price (E): "))
-S1 = float(input("Enter the Price it is expected to go up to (S1): "))
-S2 = float(input("Enter the Price it is expected to go down to (S2): "))
-t = float(input("Enter the Time to Expiry in months (t): "))
-rf = float(input("Enter the Risk-Free Rate: "))
+    # Populate stock price tree
+    for j in range(T + 1):
+        for i in range(j + 1):
+            stock_tree[i][j] = round(S0 * (u ** (j - i)) * (d ** i), 2)
 
-# up and down factors
-u = S1 / S0
-d = S2 / S0
+    # Initialize option price tree
+    option_tree = [[0 for _ in range(T + 1)] for _ in range(T + 1)]
 
-# continuously compounded risk-free rate
-i = 1 + (rf/100 * t / 12)
+    # Compute terminal option values at expiry
+    for i in range(T + 1):
+        if option_type == "call":
+            option_tree[i][T] = max(0, stock_tree[i][T] - E)
+        else:
+            option_tree[i][T] = max(0, E - stock_tree[i][T])
 
-if option_type == "call":
-    # Call Up (Cu) and Call Down (Cd) values
-    Cu = max(0, S1 - E)
-    Cd = max(0, S2 - E)
+    # Backward induction to compute option price
+    for j in range(T - 1, -1, -1):
+        for i in range(j + 1):
+            option_tree[i][j] = round((option_tree[i][j + 1] + option_tree[i + 1][j + 1]) / 2, 2)
 
-    # Calculating the Call Option Price
-    C = ((Cu * (i - d) / (u - d)) + (Cd * (u - i) / (u - d))) / i
+    return stock_tree, option_tree, option_tree[0][0]
 
-    # Calculating Hedge Ratio (Alpha)
-    Hr = (Cu - Cd) / (S0 * (u - d))
+# User input
+option_type = input("Enter option type ('call' or 'put'): ").strip().lower()
+S0 = float(input("Enter Spot Price (S0): "))
+E = float(input("Enter Strike Price (E): "))
+u = float(input("Enter Upward Price Movement Factor (u): "))
+d = float(input("Enter Downward Price Movement Factor (d): "))
+T = int(input("Enter Time to Expiry in months (T): "))  # Steps = Months
 
-    # Displaying results
-    print("\n--- Call Option Pricing Results ---")
-    print(f"Up Factor (u): {round(u, 6)}")
-    print(f"Down Factor (d): {round(d, 6)}")
-    print(f"Call Up Value (Cu): {round(Cu, 6)}")
-    print(f"Call Down Value (Cd): {round(Cd, 6)}")
-    print(f"Continuously Compounded Risk-Free Rate (i): {round(i, 6)}")
-    print(f"Call Option Price (C): Rs {round(C, 6)}")
-    print(f"Hedge Ratio (Alpha): {round(Hr, 6)}")
+# Compute binomial tree
+stock_tree, option_tree, option_price = binomial_tree(S0, E, u, d, T, option_type)
 
-elif option_type == "put":
-    # Put Up (Pu) and Put Down (Pd) values
-    Pu = max(0, E - S1)
-    Pd = max(0, E - S2)
+# Display results
+print("\n--- Stock Price Tree ---")
+for row in stock_tree:
+    print([f"{x:.2f}" for x in row if x > 0])
 
-    # Calculating the Put Option Price
-    P = ((Pu * (i - d) / (u - d)) + (Pd * (u - i) / (u - d))) / i
+print("\n--- Option Price Tree ---")
+for row in option_tree:
+    print([f"{x:.2f}" for x in row if x > 0])
 
-    # Calculating Hedge Ratio (Alpha)
-    Hr = (Pd - Pu) / (S0 * (u - d))
+print(f"\n{option_type.capitalize()} Option Price: Rs {round(option_price, 6)}")
 
-    # Displaying results
-    print("\n--- Put Option Pricing Results ---")
-    print(f"Up Factor (u): {round(u, 6)}")
-    print(f"Down Factor (d): {round(d, 6)}")
-    print(f"Put Up Value (Pu): {round(Pu, 6)}")
-    print(f"Put Down Value (Pd): {round(Pd, 6)}")
-    print(f"Continuously Compounded Risk-Free Rate (i): {round(i, 6)}")
-    print(f"Put Option Price (P): Rs {round(P, 6)}")
-    print(f"Hedge Ratio (Alpha): {round(Hr, 6)}")
 
