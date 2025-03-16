@@ -1,0 +1,49 @@
+import math
+
+def binomial_tree(S0, E, u, d, T, option_type):
+    # Initialize stock price tree
+    stock_tree = [[0 for _ in range(T + 1)] for _ in range(T + 1)]
+
+    # Populate stock price tree
+    for j in range(T + 1):
+        for i in range(j + 1):
+            stock_tree[i][j] = round(S0 * (u ** (j - i)) * (d ** i), 2)
+
+    # Initialize option price tree
+    option_tree = [[0 for _ in range(T + 1)] for _ in range(T + 1)]
+
+    # Compute terminal option values at expiry
+    for i in range(T + 1):
+        if option_type == "call":
+            option_tree[i][T] = max(0, stock_tree[i][T] - E)
+        else:
+            option_tree[i][T] = max(0, E - stock_tree[i][T])
+
+    # Backward induction to compute option price
+    for j in range(T - 1, -1, -1):
+        for i in range(j + 1):
+            option_tree[i][j] = round((option_tree[i][j + 1] + option_tree[i + 1][j + 1]) / 2, 2)
+
+    return stock_tree, option_tree, option_tree[0][0]
+
+# User input
+option_type = input("Enter option type ('call' or 'put'): ").strip().lower()
+S0 = float(input("Enter Spot Price (S0): "))
+E = float(input("Enter Strike Price (E): "))
+u = float(input("Enter Upward Price Movement Factor (u): "))
+d = float(input("Enter Downward Price Movement Factor (d): "))
+T = int(input("Enter Time to Expiry in months (T): "))  # Steps = Months
+
+# Compute binomial tree
+stock_tree, option_tree, option_price = binomial_tree(S0, E, u, d, T, option_type)
+
+# Display results
+print("\n--- Stock Price Tree ---")
+for row in stock_tree:
+    print([f"{x:.2f}" for x in row if x > 0])
+
+print("\n--- Option Price Tree ---")
+for row in option_tree:
+    print([f"{x:.2f}" for x in row if x > 0])
+
+print(f"\n{option_type.capitalize()} Option Price: Rs {round(option_price, 6)}")
